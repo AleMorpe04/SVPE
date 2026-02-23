@@ -3,8 +3,4 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\GeneratorController;
 
-Route::get('/', function () {
-    return view('welcome');
-});
-
 Route::post('/generar', [GeneratorController::class, 'generate']);
