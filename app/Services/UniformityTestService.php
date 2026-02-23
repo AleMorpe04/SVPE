@@ -53,6 +53,7 @@ class UniformityTestService
 
     private function getCriticalValue(int $df)
     {
+        // Tabla simplificada para α = 0.05
         $table = [
             5 => 11.07,
             6 => 12.59,
