@@ -4,45 +4,47 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Services\LinearCongruentialGenerator;
-use InvalidArgumentException;
+use App\Services\UniformityTestService;
+use App\Services\RunsTestService;
 
 class GeneratorController extends Controller
 {
     public function generate(Request $request)
     {
-        // 1️⃣ Validación de datos
-        $validated = $request->validate([
-            'seed' => 'required|integer|min:0',
-            'a'    => 'required|integer|min:0',
-            'c'    => 'required|integer|min:0',
-            'm'    => 'required|integer|min:1',
-            'n'    => 'required|integer|min:1'
+        // 1️⃣ Parámetros
+        $seed = $request->input('seed', 5);
+        $a    = $request->input('a', 3);
+        $c    = $request->input('c', 7);
+        $m    = $request->input('m', 100);
+        $n    = $request->input('n', 50);
+
+        // 2️⃣ Generar números
+        $generator = new LinearCongruentialGenerator($seed, $a, $c, $m, $n);
+        $result = $generator->generate();
+
+        $xi = $result['xi'];   // enteros
+        $ri = $result['ri'];   // normalizados
+
+        // 3️⃣ Pruebas estadísticas (usar ri)
+        $uniformityTest = new UniformityTestService();
+        $chiResult = $uniformityTest->test($ri);
+
+        $runsTest = new RunsTestService();
+        $runsResult = $runsTest->test($ri);
+
+        // 4️⃣ Respuesta final
+        return response()->json([
+            'parametros' => [
+                'seed' => $seed,
+                'a'    => $a,
+                'c'    => $c,
+                'm'    => $m,
+                'n'    => $n
+            ],
+            'numeros_generados'    => $xi,
+            'numeros_normalizados' => $ri,
+            'ji_cuadrada'          => $chiResult,
+            'rachas'               => $runsResult
         ]);
-
-        try {
-            // 2️⃣ Instanciar el motor matemático
-            $generator = new LinearCongruentialGenerator(
-                $validated['seed'],
-                $validated['a'],
-                $validated['c'],
-                $validated['m'],
-                $validated['n']
-            );
-
-            $result = $generator->generate();
-
-            // 3️⃣ Retornar respuesta JSON estructurada
-            return response()->json([
-                'parametros' => $validated,
-                'numeros_generados' => $result['xi'],
-                'numeros_normalizados' => $result['ri']
-            ]);
-
-        } catch (InvalidArgumentException $e) {
-
-            return response()->json([
-                'error' => $e->getMessage()
-            ], 400);
-        }
     }
 }
