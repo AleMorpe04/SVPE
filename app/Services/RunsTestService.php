@@ -4,50 +4,64 @@ namespace App\Services;
 
 class RunsTestService
 {
-    private array $numbers;
-    private float $alpha;
-
-    public function __construct(array $numbers, float $alpha = 0.05)
+    public function test(array $ri): array
     {
-        $this->numbers = $numbers;
-        $this->alpha = $alpha;
-    }
+        // 1️⃣ Total de números
+        $n = count($ri);
 
-    public function run()
-    {
-        $n = count($this->numbers);
+        // 2️⃣ Contar mayores y menores a 0.5
+        $n1 = 0;
+        $n2 = 0;
 
-        if ($n < 20) {
-            throw new \InvalidArgumentException("La muestra es demasiado pequeña para prueba de rachas.");
-        }
-
-        $binary = array_map(fn($x) => $x >= 0.5 ? 1 : 0, $this->numbers);
-
-        $runs = 1;
-        for ($i = 1; $i < $n; $i++) {
-            if ($binary[$i] !== $binary[$i - 1]) {
-                $runs++;
+        foreach ($ri as $r) {
+            if ($r >= 0.5) {
+                $n1++;
+            } else {
+                $n2++;
             }
         }
 
-        $n1 = array_sum($binary);
-        $n0 = $n - $n1;
+        // 3️⃣ Contar rachas
+        $runs = 1;
+        $prev = $ri[0] >= 0.5;
 
-        $mean = (2 * $n1 * $n0) / $n + 1;
-        $variance = (2 * $n1 * $n0 * (2 * $n1 * $n0 - $n)) 
-                    / (pow($n, 2) * ($n - 1));
+        for ($i = 1; $i < $n; $i++) {
+            $current = $ri[$i] >= 0.5;
 
-        $z = ($runs - $mean) / sqrt($variance);
+            if ($current !== $prev) {
+                $runs++;
+                $prev = $current;
+            }
+        }
 
-        $critical = 1.96;
+        // 4️⃣ Esperanza matemática
+        $expectedRuns = ((2 * $n1 * $n2) / $n) + 1;
 
+        // 5️⃣ Varianza
+        $variance = (
+            (2 * $n1 * $n2) * (2 * $n1 * $n2 - $n)
+        ) / (pow($n, 2) * ($n - 1));
+
+        // 6️⃣ Estadístico Z
+        $z = ($runs - $expectedRuns) / sqrt($variance);
+
+        // 7️⃣ Valor crítico para α = 0.05
+        $criticalZ = 1.96;
+
+        // 8️⃣ Decisión
+        $passes = abs($z) < $criticalZ;
+
+        // 9️⃣ Retornar resultado
         return [
-            'rachas' => $runs,
-            'z_calculado' => $z,
-            'z_critico' => $critical,
-            'decision' => abs($z) < $critical 
-                ? "Se acepta H₀ (Independencia)" 
-                : "Se rechaza H₀ (Dependencia)"
+            'total_runs' => $runs,
+            'expected_runs' => $expectedRuns,
+            'z_value' => $z,
+            'critical_value' => $criticalZ,
+            'alpha' => 0.05,
+            'passes' => $passes,
+            'conclusion' => $passes
+                ? 'No se rechaza H0. La secuencia es independiente.'
+                : 'Se rechaza H0. La secuencia no es independiente.'
         ];
     }
 }

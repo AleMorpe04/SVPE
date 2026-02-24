@@ -4,65 +4,52 @@ namespace App\Services;
 
 class UniformityTestService
 {
-    private array $numbers;
-    private int $k;
-    private float $alpha;
-
-    public function __construct(array $numbers, int $k = 10, float $alpha = 0.05)
+    public function test(array $ri): array
     {
-        $this->numbers = $numbers;
-        $this->k = $k;
-        $this->alpha = $alpha;
-    }
+        // 1️⃣ Cantidad de números
+        $n = count($ri);
 
-    public function run()
-    {
-        $n = count($this->numbers);
+        // 2️⃣ Número de intervalos (k)
+        $k = 10;
 
-        if ($n < 20) {
-            throw new \InvalidArgumentException("La muestra es demasiado pequeña para Ji-Cuadrada.");
-        }
+        // 3️⃣ Frecuencia esperada
+        $expected = $n / $k;
 
-        $intervalWidth = 1 / $this->k;
-        $observed = array_fill(0, $this->k, 0);
+        // 4️⃣ Inicializar arreglo de frecuencias observadas
+        $observed = array_fill(0, $k, 0);
 
-        foreach ($this->numbers as $number) {
-            $index = min((int) floor($number / $intervalWidth), $this->k - 1);
+        // 5️⃣ Contar frecuencias por intervalo
+        foreach ($ri as $r) {
+            $index = min((int)($r * $k), $k - 1);
             $observed[$index]++;
         }
 
-        $expected = $n / $this->k;
-
+        // 6️⃣ Calcular estadístico Ji-Cuadrada
         $chiSquare = 0;
-        foreach ($observed as $oi) {
-            $chiSquare += pow($oi - $expected, 2) / $expected;
+
+        foreach ($observed as $obs) {
+            $chiSquare += pow($obs - $expected, 2) / $expected;
         }
 
-        $critical = $this->getCriticalValue($this->k - 1);
+        // 7️⃣ Grados de libertad
+        $degreesOfFreedom = $k - 1;
 
+        // 8️⃣ Valor crítico para α = 0.05 y gl = 9
+        $criticalValue = 16.919;
+
+        // 9️⃣ Decisión
+        $passes = $chiSquare < $criticalValue;
+
+        // 🔟 Retornar resultado completo
         return [
-            'chi_calculado' => $chiSquare,
-            'chi_critico' => $critical,
-            'decision' => $chiSquare < $critical 
-                ? "Se acepta H₀ (Uniforme)" 
-                : "Se rechaza H₀ (No uniforme)",
-            'frecuencias_observadas' => $observed,
-            'frecuencia_esperada' => $expected
+            'chi_square' => $chiSquare,
+            'critical_value' => $criticalValue,
+            'degrees_of_freedom' => $degreesOfFreedom,
+            'alpha' => 0.05,
+            'passes' => $passes,
+            'conclusion' => $passes
+                ? 'No se rechaza H0. La secuencia es uniforme.'
+                : 'Se rechaza H0. La secuencia no es uniforme.'
         ];
-    }
-
-    private function getCriticalValue(int $df)
-    {
-        // Tabla simplificada para α = 0.05
-        $table = [
-            5 => 11.07,
-            6 => 12.59,
-            7 => 14.07,
-            8 => 15.51,
-            9 => 16.92,
-            10 => 18.31
-        ];
-
-        return $table[$df] ?? 16.92;
     }
 }
