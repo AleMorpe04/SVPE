@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use App\Services\LinearCongruentialGenerator;
 use App\Services\UniformityTestService;
 use App\Services\RunsTestService;
+use App\Services\MonteCarloInventoryService;
 
 class GeneratorController extends Controller
 {
@@ -33,7 +34,11 @@ class GeneratorController extends Controller
         $runsService = new RunsTestService();
         $runsResult = $runsService->test($ri);
 
-        // 5️⃣ Respuesta final
+        // 5️⃣ Simulación Monte Carlo (Inventario)
+        $monteCarloService = new MonteCarloInventoryService($ri);
+        $monteCarloResult = $monteCarloService->simulate();
+
+        // 6️⃣ Respuesta final
         return response()->json([
             'parametros' => [
                 'seed' => $seed,
@@ -45,7 +50,8 @@ class GeneratorController extends Controller
             'numeros_generados'    => $xi,
             'numeros_normalizados' => $ri,
             'ji_cuadrada'          => $chiResult,
-            'rachas'               => $runsResult
+            'rachas'               => $runsResult,
+            'monte_carlo'          => $monteCarloResult
         ]);
     }
 }
